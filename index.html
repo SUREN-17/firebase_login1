@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <!-- Bootstrap theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    <title>How to create Firebase login and register?</title>
+</head>
+<body>
+
+<div class="navbar navbar-default">
+    <div class="navbar-header">
+        <a class="navbar-brand" href="https://www.shinerweb.com">SUREN Technologies</a>
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target=".navbar-collapse" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+    </div>
+    <div class="navbar-collapse collapse"  >
+        <ul class="nav navbar-nav navbar-right">
+             <li><a href="#" id="logout" style="display: none;">Log Out</a></li>
+        </ul>
+    </div>
+</div>
+<br>
+<div class="container">    
+  <form name="registration_form" id="registration_form" method="post" action="#" enctype="multipart/form-data" >
+  <div class="row">
+
+    <div class="col-sm-4">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="text" name="email" id="email" class="form-control" placeholder="Enter your email">
+        </div>
+        
+        <div class="form-group">
+          <label for="password" >Password</label>
+          <input type="password" name="password" id="password" class="form-control"  placeholder="Enter your password">
+        </div>
+
+        <div class="form-group">
+          <label for="file">Upload Document</label>
+          <input type="file" name="file" id="file" class="form-control">
+        </div>
+        
+        <button type="button" id="register" name="register" class="btn btn-success">Register Now</button>
+    </div><!-- end col -->
+    </form>
+    <div class="col-sm-4">
+        <img src="firebase_auth.png">
+    </div>
+    <form name="login_form" id="login_form" method="post" action="#" enctype="multipart/form-data" >
+    <div class="col-sm-4">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="text" name="login_email" id="login_email" class="form-control" placeholder="Enter your email">
+        </div>
+        
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" name="login_password" id="login_password" class="form-control"  placeholder="Enter your password">
+        </div>
+        <button type="button" id="login" name="login" class="btn btn-success">Login</button>
+    </div><!-- end col -->
+    
+  </div><!--  end row -->       
+  </form>
+</div>
+<br>
+<center>Developed by <a href="https://shinerweb.com/">SUREN</a></center>
+</body>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.2/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.2/firebase-analytics.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.2/firebase-auth.js";
+
+        // Import Realtime Database from Firebase
+        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.7.2/firebase-database.js";
+
+        // Import Storage from Firebase
+        import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.2/firebase-storage.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyABhowyD_5Fla4juX57imdi46jkMg-s_WE",
+            authDomain: "cyberai-1c97b.firebaseapp.com",
+            projectId: "cyberai-1c97b",
+            storageBucket: "cyberai-1c97b.appspot.com",
+            messagingSenderId: "1046666905653",
+            appId: "1:1046666905653:web:c4700140e02568b72f497c",
+            measurementId: "G-BTX2NH84RQ"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth();
+        const database = getDatabase(app); // Initialize Realtime Database
+        const storage = getStorage(app); // Initialize Firebase Storage
+
+        document.getElementById("register").addEventListener("click", function() {
+            var email = document.getElementById("email").value;
+            var password = document.getElementById("password").value;
+            var file = document.getElementById("file").files[0];
+
+            createUserWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    console.log(user);
+
+                    // Get a reference to the Firebase Storage
+                    const storageReference = storageRef(storage, 'user-documents/' + file.name);
+
+                    // Upload file to storage
+                    uploadBytes(storageReference, file).then((snapshot) => {
+                        console.log('File uploaded successfully');
+
+                        // Get the download URL of the uploaded file
+                        getDownloadURL(snapshot.ref).then((url) => {
+                            // Get a reference to the user node in the Realtime Database and set user data
+                            const dbRef = ref(database, 'users/' + user.uid);
+                            set(dbRef, {
+                                email: email,
+                                fileUrl: url
+                            });
+
+                            alert("Registration successfully!!");
+                        });
+                    }).catch((error) => {
+                        console.error('File upload error:', error);
+                        alert('File upload error: ' + error.message);
+                    });
+                })
+                .catch((error) => {
+                    const errorMessage = error.message;
+                    console.log(errorMessage);
+                    alert(error);
+                });
+        });
+
+        document.getElementById("login").addEventListener("click", function() {
+            var email = document.getElementById("login_email").value;
+            var password = document.getElementById("login_password").value;
+
+            signInWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    console.log(user);
+                    alert(user.email + " Login successfully!!!");
+                    document.getElementById('logout').style.display = 'block';
+                })
+                .catch((error) => {
+                    const errorMessage = error.message;
+                    console.log(errorMessage);
+                    alert(errorMessage);
+                });
+        });
+
+        document.getElementById("logout").addEventListener("click", function() {
+            signOut(auth).then(() => {
+                console.log('Sign-out successful.');
+                alert('Sign-out successful.');
+                document.getElementById('logout').style.display = 'none';
+            }).catch((error) => {
+                console.log('Sign-out error:', error);
+            });
+        });
+    </script>
+</html>
